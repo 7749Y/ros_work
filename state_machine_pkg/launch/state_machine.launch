@@ -1,0 +1,26 @@
+<launch>
+    <!-- 工业组省赛任务一 状态机测试启动文件 -->
+    <node name="state_machine" pkg="state_machine_pkg" type="state_machine_node" output="screen">
+        <!-- AR码配置 -->
+        <param name="ar_id_1" value="1"/>
+        <param name="ar_id_2" value="3"/>
+        <param name="ar_dist" value="0.4"/>
+
+        <!-- 导航目标点（需根据实际场地标定） -->
+        <param name="pick_point_1_x" value="0.5"/>
+        <param name="pick_point_1_y" value="1.5"/>
+        <param name="pick_point_2_x" value="1.5"/>
+        <param name="pick_point_2_y" value="1.5"/>
+        <param name="departure_x"    value="0.0"/>
+        <param name="departure_y"    value="0.0"/>
+        <param name="charge_x"       value="0.0"/>
+        <param name="charge_y"       value="2.0"/>
+
+        <!-- 超时配置 -->
+        <param name="timeout_wait_start"  value="30.0"/>
+        <param name="timeout_nav"         value="60.0"/>
+        <param name="timeout_recognize"   value="15.0"/>
+        <param name="timeout_grasp"       value="20.0"/>
+        <param name="timeout_charge"      value="30.0"/>
+    </node>
+</launch>
