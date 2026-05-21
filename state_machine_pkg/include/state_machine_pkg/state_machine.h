@@ -3,6 +3,12 @@
 
 #include <ros/ros.h>
 #include <std_msgs/Empty.h>
+#include <std_srvs/Empty.h>
+#include <actionlib/client/simple_action_client.h>
+#include <move_base_msgs/MoveBaseAction.h>
+#include <ar_pose/Track.h>
+#include <arm_controller/move.h>
+#include <relative_move/SetRelativeMove.h>
 #include <string>
 #include <functional>
 
@@ -137,6 +143,21 @@ private:
 
     // 开始信号回调
     void startSignalCallback(const std_msgs::Empty::ConstPtr& msg);
+
+    // === 服务客户端 ===
+    ros::ServiceClient track_client_;       // /track (ar_pose::Track)
+    ros::ServiceClient arm_move_client_;    // /goto_position (arm_controller::move)
+    ros::ServiceClient pick_client_;        // /swiftpro/on (吸盘开启)
+    ros::ServiceClient put_client_;         // /swiftpro/off (吸盘关闭)
+    ros::ServiceClient relmove_client_;     // /relative_move (relative_move::SetRelativeMove)
+
+    // === Action 客户端 ===
+    typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
+    MoveBaseClient* nav_client_;
+
+    // === 当前抓取到的物块位姿（由AR识别填充）===
+    float grasp_x_, grasp_y_, grasp_z_;
+    bool grasp_pose_valid_;
 };
 
 #endif // STATE_MACHINE_H
