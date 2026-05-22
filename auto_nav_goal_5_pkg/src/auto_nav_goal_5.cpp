@@ -3,58 +3,15 @@
 #include <actionlib/client/simple_action_client.h>
 #include <move_base_msgs/MoveBaseAction.h>
 #include <ar_pose/Track.h>
-#include "std_srvs/Empty.h"
-#include "arm_controller/move.h"
 #include <tf/transform_listener.h>
 
 // 创建服务客户端
 ros::ServiceClient relmove_client;
-ros::ServiceClient track_client; 
-ros::ServiceClient armmove_client;
-ros::ServiceClient pick_client;
-ros::ServiceClient put_client;
+ros::ServiceClient track_client;
 
 // 定义 Action 客户端类型
 typedef actionlib::SimpleActionClient<move_base_msgs::MoveBaseAction> MoveBaseClient;
 MoveBaseClient* nav_client;
-
-bool arm_move(float x,float y,float z)
-{
-    // 等待服务上线
-    ROS_INFO("等待服务 /goto_position 启动...");
-    armmove_client.waitForExistence();
-    ROS_INFO("服务已连接！"); 
-    // 定义服务消息
-    arm_controller::move srv;
-
-    // 填充请求数据
-    srv.request.pose.position.x = x;
-    srv.request.pose.position.y = y;
-    srv.request.pose.position.z = z;
-
-    armmove_client.call(srv);
-    return srv.response.success;
-}
-
-void set_pump(bool state)
-{
-    // 等待服务上线
-    ROS_INFO("等待抓取服务启动...");
-    pick_client.waitForExistence();
-    put_client.waitForExistence();
-    ROS_INFO("服务已连接！"); 
-    // 定义服务消息
-    std_srvs::Empty srv;
-    if (state)
-    {
-        pick_client.call(srv);
-    }
-    else
-    {
-        put_client.call(srv);
-    }
-}
-
 
 bool set_ARtrack(int id, float dist){
     // 等待服务上线
@@ -191,39 +148,17 @@ bool get_transform(const std::string& parent_frame, const std::string& child_fra
     }
 }
 
-void grab(float x, float y, float z, float off = 10) {
-    arm_move(x, y, z + off);
-    arm_move(x, y, z);
-    ros::Duration(1.0).sleep();
-    set_pump(true);
-    arm_move(x, y, z + off);
-}
-
-void place(float x, float y, float z, float off = 10) {
-    arm_move(x, y, z + off);
-    arm_move(x, y, z);
-    ros::Duration(1.0).sleep();
-    set_pump(false);
-    arm_move(x, y, z + off);
-}
-
 int main(int argc, char** argv) {
     setlocale(LC_CTYPE, "zh_CN.utf8");
-    ros::init(argc, argv, "inbound_operation_node");
+    ros::init(argc, argv, "auto_nav_node");
     ros::NodeHandle nh;
 
     // 初始化服务客户端
     relmove_client = nh.serviceClient<relative_move::SetRelativeMove>("/relative_move");
     track_client = nh.serviceClient<ar_pose::Track>("/track");
-    armmove_client = nh.serviceClient<arm_controller::move>("/goto_position");
-    pick_client = nh.serviceClient<std_srvs::Empty>("/swiftpro/on");
-    put_client = nh.serviceClient<std_srvs::Empty>("/swiftpro/off");
     nav_client = new MoveBaseClient("move_base",true);
 
     try {
-        // 主流程
-        arm_move(150, 0, 120);
-
         if (!navToGoal(0.49384, 1.26898, 0, 1)) {
             return -1;
         }
@@ -234,23 +169,11 @@ int main(int argc, char** argv) {
             return -1;
         }
 
-        // 观测点一
-        arm_move(100, 170, 120);
-        tf::StampedTransform tran1;
-        if (get_transform("Base", "ar_marker_1", tran1)) {
-            grab(tran1.getOrigin().x()*1000, tran1.getOrigin().y()*1000, tran1.getOrigin().z()*1000);
-        }
+        ros::Duration(1.0).sleep();
 
-        // 观测点二
-        arm_move(200, -150, 120);
-        tf::StampedTransform tran2;
-        if (get_transform("Base", "ar_marker_100", tran2)) {
-            place(tran2.getOrigin().x()*1000, tran2.getOrigin().y()*1000, tran2.getOrigin().z()*1000 + 10);
+        if (!set_relmove(-0.18, 0, 0)) {
+            return -1;
         }
-        arm_move(150, 0, 120);
-
-        set_relmove(-0.18, 0, 0);
-        navToGoal(0, 0, 0, 1);
 
     } catch (ros::Exception& e) {
         ROS_ERROR("程序被中断：%s", e.what());
